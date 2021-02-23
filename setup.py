@@ -8,7 +8,7 @@ _here = pathlib.Path(__file__).resolve().parent
 name = 'sympytorch'
 
 # for simplicity we actually store the version in the __version__ attribute in the source
-with open(os.path.join(_here, name, '__init__.py')) as f:
+with open(_here / name / '__init__.py') as f:
     meta_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", f.read(), re.M)
     if meta_match:
         version = meta_match.group(1)

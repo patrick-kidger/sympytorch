@@ -3,6 +3,9 @@ import torch
 
 
 _func_lookup = {
+    sympy.Mul: torch.mul,
+    sympy.Add: torch.add,
+    sympy.div: torch.div,
     sympy.Abs: torch.abs,
     sympy.sign: torch.sign,
     # Note: May raise error for ints.
@@ -112,7 +115,7 @@ class _Node(torch.nn.Module):
         return self.func(*args)
 
 
-class SympyModule(torch.nn.Module):
+class SymPyModule(torch.nn.Module):
     def __init__(self, *, expressions, **kwargs):
         super().__init__(**kwargs)
 
