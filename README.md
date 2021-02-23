@@ -38,4 +38,4 @@ It has a method `.sympy()`, which returns the corresponding list of SymPy expres
 
 ## Extensions
 
-Not every PyTorch or SymPy operation is supported -- just the ones that I found I've needed! There's a dictionary [here](./sympytorch/sympy_module.py#L5) that lists the supported operations -- feel free to submit PRs for any extra operations you need.
+Not every PyTorch or SymPy operation is supported -- just the ones that I found I've needed! There's a dictionary [here](./sympytorch/sympy_module.py#L5) that lists the supported operations. Feel free to submit PRs for any extra operations you need.
