@@ -2,7 +2,7 @@
 
 A micro-library as a convenience for turning SymPy expressions into PyTorch Modules.
 
-All SymPy floats become trainable parameters; all SymPy symbols are inputs to the Module.
+All SymPy floats become trainable parameters. All SymPy symbols are inputs to the Module.
 
 ## Installation
 
