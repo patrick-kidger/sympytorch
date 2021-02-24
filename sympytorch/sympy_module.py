@@ -1,10 +1,17 @@
+import functools as ft
 import sympy
 import torch
 
 
+def _reduce(fn):
+    def fn_(*args):
+        return ft.reduce(fn, args)
+    return fn_
+
+
 _func_lookup = {
-    sympy.Mul: torch.mul,
-    sympy.Add: torch.add,
+    sympy.Mul: _reduce(torch.mul),
+    sympy.Add: _reduce(torch.add),
     sympy.div: torch.div,
     sympy.Abs: torch.abs,
     sympy.sign: torch.sign,
@@ -59,21 +66,26 @@ class _Node(torch.nn.Module):
     def __init__(self, *, expr, _memodict):
         super().__init__()
 
-        self._node_type = expr.func
 
-        if expr.func is sympy.Float:
+        if isinstance(expr, sympy.Float):
+            self._node_type = sympy.Float
             self._value = torch.nn.Parameter(torch.tensor(float(expr)))
             self.func = lambda: self._value
             self.args = ()
-        elif expr.func is sympy.Integer:
+        elif isinstance(expr, sympy.Integer):
+            # Can get here if expr is one of the Integer specal cases,
+            # e.g. NegativeOne
+            self._node_type = sympy.Integer
             self._value = int(expr)
             self.func = lambda: self._value
             self.args = ()
-        elif expr.func is sympy.Symbol:
+        elif isinstance(expr, sympy.Symbol):
+            self._node_type = sympy.Symbol
             self._name = expr.name
             self.func = lambda value: value
             self.args = ((lambda memodict: memodict[expr.name]),)
         else:
+            self._node_type = expr.func
             self.func = _func_lookup[expr.func]
             args = []
             for arg in expr.args:

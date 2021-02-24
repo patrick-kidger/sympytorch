@@ -28,3 +28,10 @@ def test_grad():
     expr, = mod.sympy()
     assert expr == 2.0 * x
 
+
+def test_reduce():
+    x, y = sympy.symbols('x y')
+    z = 2 * x * y
+    mod = sympytorch.SymPyModule(expressions=[z])
+    mod(x=torch.rand(2), y=torch.rand(2))
+
