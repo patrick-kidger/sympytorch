@@ -141,4 +141,4 @@ class SymPyModule(torch.nn.Module):
         return [node.sympy(_memodict) for node in self.nodes]
 
     def forward(self, **symbols):
-        return torch.stack([node(symbols) for node in self.nodes])
+        return torch.stack([node(symbols) for node in self.nodes], dim=-1)
