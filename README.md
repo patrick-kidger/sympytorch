@@ -25,7 +25,7 @@ out = mod(x_name=x_)  # returns a list of SymPy expressions
 
 assert torch.equal(out[0], x_.cos())
 assert torch.equal(out[1], 2 * x_.sin())
-assert out.requires_grad  # from the two Parameters initialised as 1.0
+assert out.requires_grad  # from the two Parameters initialised as 1.0 and 2.0
 assert {x.item() for x in mod.parameters()} == {1.0, 2.0}
 ```
 
@@ -35,7 +35,7 @@ The API consists of a single object, `SymPyModule`.
 
 It is initialised as `SymPyModule(*, expressions)`, where `expressions` is a list of SymPy expressions.  
 It can be called, passing the values of the symbols as in the above example.  
-It has a method `.sympy()`, which returns the corresponding list of SymPy expressions. (Which may not be the same as the expressions it was initialised with, if the values of its Parameters have been changed, e.g. have been learnt.)
+It has a method `.sympy()`, which returns the corresponding list of SymPy expressions. (Which may not be the same as the expressions it was initialised with, if the values of its Parameters have been changed, i.e. have been learnt.)
 
 ## Extensions
 
