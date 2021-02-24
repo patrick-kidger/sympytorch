@@ -18,8 +18,8 @@ import sympy, torch, sympytorch
 x = sympy.symbols('x_name')
 cosx = 1.0 * sympy.cos(x)
 sinx = 2.0 * sympy.sin(x)
-
 mod = sympytorch.SymPyModule(expressions=[cosx, sinx])
+
 x_ = torch.rand(3)
 out = mod(x_name=x_)  # out has shape (3, 2)
 
