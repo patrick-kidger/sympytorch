@@ -72,7 +72,7 @@ class _Node(torch.nn.Module):
             self.func = lambda: self._value
             self.args = ()
         elif isinstance(expr, sympy.Integer):
-            # Can get here if expr is one of the Integer specal cases,
+            # Can get here if expr is one of the Integer special cases,
             # e.g. NegativeOne
             self._node_type = sympy.Integer
             self._value = int(expr)
