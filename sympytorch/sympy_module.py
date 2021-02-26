@@ -66,7 +66,6 @@ class _Node(torch.nn.Module):
     def __init__(self, *, expr, _memodict):
         super().__init__()
 
-
         if isinstance(expr, sympy.Float):
             self._node_type = sympy.Float
             self._value = torch.nn.Parameter(torch.tensor(float(expr)))
