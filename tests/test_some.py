@@ -36,3 +36,16 @@ def test_reduce():
     mod = sympytorch.SymPyModule(expressions=[z])
     mod(x=torch.rand(2), y=torch.rand(2))
 
+    z = 2 + x + y
+    mod = sympytorch.SymPyModule(expressions=[z])
+    mod(x=torch.rand(2), y=torch.rand(2))
+
+
+def test_special_subclasses():
+    x, y = sympy.symbols('x y')
+    z = x - 1
+    w = y * 0
+
+    mod = sympytorch.SymPyModule(expressions=[z, w])
+    assert mod.sympy() == [x - 1, sympy.Integer(0)]
+
