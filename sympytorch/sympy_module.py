@@ -1,3 +1,4 @@
+import collections as co
 import functools as ft
 import sympy
 import torch
@@ -9,7 +10,7 @@ def _reduce(fn):
     return fn_
 
 
-_func_lookup = {
+_global_func_lookup = {
     sympy.Mul: _reduce(torch.mul),
     sympy.Add: _reduce(torch.add),
     sympy.div: torch.div,
@@ -63,7 +64,7 @@ _func_lookup = {
 
 
 class _Node(torch.nn.Module):
-    def __init__(self, *, expr, _memodict, **kwargs):
+    def __init__(self, *, expr, _memodict, _func_lookup, **kwargs):
         super().__init__(**kwargs)
         
         self._sympy_func = expr.func
@@ -95,7 +96,7 @@ class _Node(torch.nn.Module):
                 try:
                     arg_ = _memodict[arg]
                 except KeyError:
-                    arg_ = type(self)(expr=arg, _memodict=_memodict)
+                    arg_ = type(self)(expr=arg, _memodict=_memodict, _func_lookup=_func_lookup, **kwargs)
                     _memodict[arg] = arg_
                 args.append(arg_)
             self._args = torch.nn.ModuleList(args)
@@ -133,12 +134,16 @@ class _Node(torch.nn.Module):
 
 
 class SymPyModule(torch.nn.Module):
-    def __init__(self, *, expressions, **kwargs):
+    def __init__(self, *, expressions, extra_funcs=None, **kwargs):
         super().__init__(**kwargs)
+        
+        if extra_funcs is None:
+            extra_funcs = {}
+        _func_lookup = co.ChainMap(_global_func_lookup, extra_funcs)
 
         _memodict = {}
         self._nodes = torch.nn.ModuleList(
-            [_Node(expr=expr, _memodict=_memodict) for expr in expressions]
+            [_Node(expr=expr, _memodict=_memodict, _func_lookup=_func_lookup) for expr in expressions]
         )
 
     def sympy(self):

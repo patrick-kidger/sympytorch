@@ -57,3 +57,13 @@ def test_constants():
     assert mod.sympy() == [y]
     assert set(p.item() for p in mod.parameters()) == {2.0}
     assert set(b.item() for b in mod.buffers()) == {1.0}
+
+
+def test_custom_function():
+    x, y = sympy.symbols('x y')
+    f = sympy.Function('f')
+    z = x + f(y)
+    extra_funcs = {f: lambda y_: y_ ** 2}
+    mod = sympytorch.SymPyModule(expressions=[z], extra_funcs=extra_funcs)
+    assert mod.sympy() == [z]
+    assert mod(x=1, y=2) == 1 + 2 ** 2

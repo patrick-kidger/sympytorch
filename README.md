@@ -32,16 +32,18 @@ assert {x.item() for x in mod.parameters()} == {1.0, 2.0}
 ## API
 
 ```python
-sympytorch.SymPyModule(*, expressions)
+sympytorch.SymPyModule(*, expressions, extra_funcs=None)
 ```
-Where `expressions` is a list of SymPy expressions.
+Where:
+- `expressions` is a list of SymPy expressions.
+- `extra_funcs` is a dictionary mapping from custom `sympy.Function`s to their PyTorch implementation. Defaults to no extra functions.
 
 Instances of `SymPyModule` can be called, passing the values of the symbols as in the above example.
 
-It has a method `.sympy()`, which returns the corresponding list of SymPy expressions. (Which may not be the same as the expressions it was initialised with, if the values of its Parameters have been changed, i.e. have been learnt.)
+`SymPyModule` has a method `.sympy()`, which returns the corresponding list of SymPy expressions. (Which may not be the same as the expressions it was initialised with, if the values of its Parameters have been changed, i.e. have been learnt.)
 
 Wrapping floats in `sympy.UnevaluatedExpr` will cause them not to be trained, by registering them as buffers rather than parameters.
 
 ## Extensions
 
-Not every PyTorch or SymPy operation is supported -- just the ones that I found I've needed! There's a dictionary [here](./sympytorch/sympy_module.py#L12) that lists the supported operations. Feel free to submit PRs for any extra operations you need.
+Not every PyTorch or SymPy operation is supported -- just the ones that I found I've needed! There's a dictionary [here](./sympytorch/sympy_module.py#L12) that lists the supported operations. Feel free to submit PRs for any extra operations you think should be in by default. You can also use the `extra_funcs` argument to specify extra functions, including custom functions.
