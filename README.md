@@ -2,7 +2,7 @@
 
 A micro-library as a convenience for turning SymPy expressions into PyTorch Modules.
 
-All SymPy floats become trainable parameters. All SymPy symbols are inputs to the Module.
+SymPy floats (optionally) become trainable parameters. SymPy symbols are inputs to the Module.
 
 ## Installation
 
@@ -31,11 +31,16 @@ assert {x.item() for x in mod.parameters()} == {1.0, 2.0}
 
 ## API
 
-The API consists of a single object, `SymPyModule`.
+```python
+sympytorch.SymPyModule(*, expressions)
+```
+Where `expressions` is a list of SymPy expressions.
 
-It is initialised as `SymPyModule(*, expressions)`, where `expressions` is a list of SymPy expressions.  
-It can be called, passing the values of the symbols as in the above example.  
+Instances of `SymPyModule` can be called, passing the values of the symbols as in the above example.
+
 It has a method `.sympy()`, which returns the corresponding list of SymPy expressions. (Which may not be the same as the expressions it was initialised with, if the values of its Parameters have been changed, i.e. have been learnt.)
+
+Wrapping floats in `sympy.UnevaluatedExpr` will cause them not to be trained, by registering them as buffers rather than parameters.
 
 ## Extensions
 

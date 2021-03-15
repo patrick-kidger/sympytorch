@@ -28,7 +28,7 @@ _func_lookup = {
     sympy.tan: torch.tan,
     sympy.atan: torch.atan,
     sympy.atan2: torch.atan2,
-    # Note: Also may give NaN for complex results.
+    # Note: May give NaN for complex results.
     sympy.cosh: torch.cosh,
     sympy.acosh: torch.acosh,
     sympy.sinh: torch.sinh,
@@ -65,27 +65,31 @@ _func_lookup = {
 class _Node(torch.nn.Module):
     def __init__(self, *, expr, _memodict, **kwargs):
         super().__init__(**kwargs)
+        
+        self._sympy_func = expr.func
 
         if issubclass(expr.func, sympy.Float):
-            self._node_type = sympy.Float
             self._value = torch.nn.Parameter(torch.tensor(float(expr)))
-            self._func = lambda: self._value
+            self._torch_func = lambda: self._value
+            self._args = ()
+        elif issubclass(expr.func, sympy.UnevaluatedExpr):
+            if len(expr.args) != 1 or not issubclass(expr.args[0].func, sympy.Float):
+                raise ValueError("UnevaluatedExpr should only be used to wrap floats.")
+            self.register_buffer('_value', torch.tensor(float(expr.args[0])))
+            self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.Integer):
             # Can get here if expr is one of the Integer special cases,
             # e.g. NegativeOne
-            self._node_type = sympy.Integer
             self._value = int(expr)
-            self._func = lambda: self._value
+            self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.Symbol):
-            self._node_type = sympy.Symbol
             self._name = expr.name
-            self._func = lambda value: value
+            self._torch_func = lambda value: value
             self._args = ((lambda memodict: memodict[expr.name]),)
         else:
-            self._node_type = expr.func
-            self._func = _func_lookup[expr.func]
+            self._torch_func = _func_lookup[expr.func]
             args = []
             for arg in expr.args:
                 try:
@@ -97,12 +101,14 @@ class _Node(torch.nn.Module):
             self._args = torch.nn.ModuleList(args)
 
     def sympy(self, _memodict):
-        if issubclass(self._node_type, sympy.Float):
-            return self._node_type(self._value.item())
-        elif issubclass(self._node_type, sympy.Integer):
-            return self._node_type(self._value)
-        elif issubclass(self._node_type, sympy.Symbol):
-            return self._node_type(self._name)
+        if issubclass(self._sympy_func, sympy.Float):
+            return self._sympy_func(self._value.item())
+        elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
+            return self._sympy_func(self._value.item())
+        elif issubclass(self._sympy_func, sympy.Integer):
+            return self._sympy_func(self._value)
+        elif issubclass(self._sympy_func, sympy.Symbol):
+            return self._sympy_func(self._name)
         else:
             args = []
             for arg in self._args:
@@ -112,7 +118,7 @@ class _Node(torch.nn.Module):
                     arg_ = arg.sympy(_memodict)
                     _memodict[arg] = arg_
                 args.append(arg_)
-            return self._node_type(*args)
+            return self._sympy_func(*args)
 
     def forward(self, memodict):
         args = []
@@ -123,7 +129,7 @@ class _Node(torch.nn.Module):
                 arg_ = arg(memodict)
                 memodict[arg] = arg_
             args.append(arg_)
-        return self._func(*args)
+        return self._torch_func(*args)
 
 
 class SymPyModule(torch.nn.Module):

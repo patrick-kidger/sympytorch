@@ -49,3 +49,11 @@ def test_special_subclasses():
     mod = sympytorch.SymPyModule(expressions=[z, w])
     assert mod.sympy() == [x - 1, sympy.Integer(0)]
 
+
+def test_constants():
+    x = sympy.symbols('x')
+    y = 2.0 * x + sympy.UnevaluatedExpr(1.0)
+    mod = sympytorch.SymPyModule(expressions=[y])
+    assert mod.sympy() == [y]
+    assert set(p.item() for p in mod.parameters()) == {2.0}
+    assert set(b.item() for b in mod.buffers()) == {1.0}
