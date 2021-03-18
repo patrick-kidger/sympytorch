@@ -44,6 +44,11 @@ Instances of `SymPyModule` can be called, passing the values of the symbols as i
 
 Wrapping floats in `sympy.UnevaluatedExpr` will cause them not to be trained, by registering them as buffers rather than parameters.
 
+```python
+sympytorch.hide_floats(expression)
+```
+As a convenience, `hide_floats` will take an expression and return a new expression with every float wrapped in a `sympy.UnevaluatedExpr`, so that it is interpreted as a buffer rather than a parameter.
+
 ## Extensions
 
 Not every PyTorch or SymPy operation is supported -- just the ones that I found I've needed! There's a dictionary [here](./sympytorch/sympy_module.py#L12) that lists the supported operations. Feel free to submit PRs for any extra operations you think should be in by default. You can also use the `extra_funcs` argument to specify extra functions, including custom functions.
