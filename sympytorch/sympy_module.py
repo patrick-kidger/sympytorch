@@ -66,7 +66,7 @@ _global_func_lookup = {
 class _Node(torch.nn.Module):
     def __init__(self, *, expr, _memodict, _func_lookup, **kwargs):
         super().__init__(**kwargs)
-        
+
         self._sympy_func = expr.func
 
         if issubclass(expr.func, sympy.Float):
@@ -105,12 +105,16 @@ class _Node(torch.nn.Module):
         if issubclass(self._sympy_func, sympy.Float):
             return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
-            return self._sympy_func(self._value.item()).doit()
+            return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.Integer):
             return self._sympy_func(self._value)
         elif issubclass(self._sympy_func, sympy.Symbol):
             return self._sympy_func(self._name)
         else:
+            if issubclass(self._sympy_func, (sympy.Min, sympy.Max)):
+                evaluate = False
+            else:
+                evaluate = True
             args = []
             for arg in self._args:
                 try:
@@ -119,7 +123,7 @@ class _Node(torch.nn.Module):
                     arg_ = arg.sympy(_memodict)
                     _memodict[arg] = arg_
                 args.append(arg_)
-            return self._sympy_func(*args)
+            return self._sympy_func(*args, evaluate=evaluate)
 
     def forward(self, memodict):
         args = []
