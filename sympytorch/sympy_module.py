@@ -105,7 +105,7 @@ class _Node(torch.nn.Module):
         if issubclass(self._sympy_func, sympy.Float):
             return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
-            return self._sympy_func(self._value.item())
+            return self._sympy_func(self._value.item()).doit()
         elif issubclass(self._sympy_func, sympy.Integer):
             return self._sympy_func(self._value)
         elif issubclass(self._sympy_func, sympy.Symbol):
