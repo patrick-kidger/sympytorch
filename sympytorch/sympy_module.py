@@ -155,5 +155,7 @@ class SymPyModule(torch.nn.Module):
         return [node.sympy(_memodict) for node in self._nodes]
 
     def forward(self, **symbols):
-        return torch.stack([node(symbols) for node in self._nodes], dim=-1)
+        out = [node(symbols) for node in self._nodes]
+        out = torch.broadcast_tensors(*out)
+        return torch.stack(out, dim=-1)
 
