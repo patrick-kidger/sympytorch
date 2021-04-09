@@ -140,6 +140,8 @@ class _Node(torch.nn.Module):
 class SymPyModule(torch.nn.Module):
     def __init__(self, *, expressions, extra_funcs=None, **kwargs):
         super().__init__(**kwargs)
+
+        expressions = tuple(expressions)
         
         if extra_funcs is None:
             extra_funcs = {}
@@ -149,6 +151,10 @@ class SymPyModule(torch.nn.Module):
         self._nodes = torch.nn.ModuleList(
             [_Node(expr=expr, _memodict=_memodict, _func_lookup=_func_lookup) for expr in expressions]
         )
+        self._expressions_string = str(expressions)
+
+    def __repr__(self):
+        return f"{type(self).__name__}(expressions={self._expressions_string})"
 
     def sympy(self):
         _memodict = {}
