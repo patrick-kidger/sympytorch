@@ -1,14 +1,17 @@
-# sympytorch
+<h1 align="center">sympytorch</h1>
 
-A micro-library as a convenience for turning SymPy expressions into PyTorch Modules.
+Turn SymPy expressions into PyTorch Modules.
 
 SymPy floats (optionally) become trainable parameters. SymPy symbols are inputs to the Module.
+
+Optimise your symbolic expressions via gradient descent!
 
 ## Installation
 
 ```bash
-pip install git+https://github.com/patrick-kidger/sympytorch.git
+pip install sympytorch
 ```
+Requires Python 3.7+ and PyTorch 1.6.0+ and SymPy 1.7.1+.
 
 ## Example
 
