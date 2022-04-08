@@ -73,16 +73,20 @@ class _Node(torch.nn.Module):
             self._value = torch.nn.Parameter(torch.tensor(float(expr)))
             self._torch_func = lambda: self._value
             self._args = ()
-        elif issubclass(expr.func, sympy.UnevaluatedExpr):
-            if len(expr.args) != 1 or not issubclass(expr.args[0].func, sympy.Float):
-                raise ValueError("UnevaluatedExpr should only be used to wrap floats.")
-            self.register_buffer('_value', torch.tensor(float(expr.args[0])))
-            self._torch_func = lambda: self._value
-            self._args = ()
         elif issubclass(expr.func, sympy.Integer):
             # Can get here if expr is one of the Integer special cases,
             # e.g. NegativeOne
             self._value = int(expr)
+            self._torch_func = lambda: self._value
+            self._args = ()
+        elif issubclass(expr.func, sympy.core.numbers.Half) or issubclass(expr.func, sympy.core.numbers.Rational):
+            self._value = float(expr)
+            self._torch_func = lambda: self._value
+            self._args = ()
+        elif issubclass(expr.func, sympy.UnevaluatedExpr):
+            if len(expr.args) != 1 or not issubclass(expr.args[0].func, sympy.Float):
+                raise ValueError("UnevaluatedExpr should only be used to wrap floats.")
+            self.register_buffer('_value', torch.tensor(float(expr.args[0])))
             self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.Symbol):
@@ -104,10 +108,12 @@ class _Node(torch.nn.Module):
     def sympy(self, _memodict):
         if issubclass(self._sympy_func, sympy.Float):
             return self._sympy_func(self._value.item())
-        elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
-            return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.Integer):
             return self._sympy_func(self._value)
+        elif issubclass(self._sympy_func, sympy.core.numbers.Half) or issubclass(self._sympy_func, sympy.core.numbers.Rational) :
+            return self._sympy_func(self._value)    
+        elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
+            return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.Symbol):
             return self._sympy_func(self._name)
         else:
@@ -136,11 +142,9 @@ class _Node(torch.nn.Module):
             args.append(arg_)
         return self._torch_func(*args)
 
-
 class SymPyModule(torch.nn.Module):
     def __init__(self, *, expressions, extra_funcs=None, **kwargs):
         super().__init__(**kwargs)
-
         expressions = tuple(expressions)
         
         if extra_funcs is None:
