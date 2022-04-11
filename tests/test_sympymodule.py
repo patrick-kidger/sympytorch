@@ -1,5 +1,5 @@
 import sympy, torch, sympytorch
-
+import numpy as np
 
 def test_example():
     x = sympy.symbols('x_name')
@@ -58,18 +58,6 @@ def test_constants():
     assert set(p.item() for p in mod.parameters()) == {2.0}
     assert set(b.item() for b in mod.buffers()) == {1.0}
 
-def test_half():
-    x = sympy.symbols('x')
-    y =  x**0.5 
-    mod = sympytorch.SymPyModule(expressions=[y])
-    assert mod.sympy() == [y]
-    assert set(p.item() for p in mod.parameters()) == {0.5}
-    
-    expr = sympy.parse_expr("sqrt(x)")
-    mod = sympytorch.SymPyModule(expressions=[expr])
-    assert mod.sympy() == [expr]
-    assert len([p.item() for p in mod.parameters()])==0
-
 def test_custom_function():
     x, y = sympy.symbols('x y')
     f = sympy.Function('f')
@@ -78,3 +66,34 @@ def test_custom_function():
     mod = sympytorch.SymPyModule(expressions=[z], extra_funcs=extra_funcs)
     assert mod.sympy() == [z]
     assert mod(x=1, y=2) == 1 + 2 ** 2
+
+def test_rationals():
+    xvals = np.random.randn(100)
+    x = sympy.symbols('x')
+    y =  x*sympy.Rational(2,7)
+    mod = sympytorch.SymPyModule(expressions=[y])
+    assert mod.sympy() == [y], "mod: {}, y:{}".format(mod.sympy(), y)
+    assert len([p.item() for p in mod.parameters()])==0
+    y_tilde = mod(x=torch.tensor(xvals, dtype=torch.float64))[:,0]
+    error = y_tilde.detach().numpy()-xvals*2/7
+    assert (error**2).mean()<1e-10, "error:{}".format((error**2).mean())
+    
+def test_half1():
+    xvals = np.random.randn(100)
+    x = sympy.symbols('x')
+    y =  abs(x)**sympy.S.Half
+    mod = sympytorch.SymPyModule(expressions=[y])
+    assert mod.sympy() == [y], "mod: {}, y:{}".format(mod.sympy(), y)
+    y_tilde = mod(x=torch.tensor(xvals, dtype=torch.float64))[:,0]
+    error = y_tilde.detach().numpy()-np.abs(xvals)**0.5
+    assert (error**2).mean()<1e-10, "error:{}".format((error**2).mean())
+    
+def test_half2():
+    xvals = np.random.randn(100)
+    y = sympy.parse_expr("sqrt(Abs(x))")
+    mod = sympytorch.SymPyModule(expressions=[y])
+    assert mod.sympy() == [y], "mod: {}, y:{}".format(mod.sympy(), y)
+    assert len([p.item() for p in mod.parameters()])==0
+    y_tilde = mod(x=torch.tensor(xvals, dtype=torch.float64))[:,0]
+    error = y_tilde.detach().numpy()-np.abs(xvals)**0.5
+    assert (error**2).mean()<1e-10, "error:{}".format((error**2).mean())

@@ -66,20 +66,21 @@ _global_func_lookup = {
 class _Node(torch.nn.Module):
     def __init__(self, *, expr, _memodict, _func_lookup, **kwargs):
         super().__init__(**kwargs)
-
+        
         self._sympy_func = expr.func
         if issubclass(expr.func, sympy.Float):
             self._value = torch.nn.Parameter(torch.tensor(float(expr)))
             self._torch_func = lambda: self._value
             self._args = ()
+        elif issubclass(expr.func, sympy.Rational):
+            self.register_buffer('_numerator', torch.tensor(expr.p, dtype=torch.float64))
+            self.register_buffer('_denominator', torch.tensor(expr.q, dtype=torch.float64))
+            self._torch_func = lambda: self._numerator / self._denominator
+            self._args = ()
         elif issubclass(expr.func, sympy.Integer):
             # Can get here if expr is one of the Integer special cases,
             # e.g. NegativeOne
             self._value = int(expr)
-            self._torch_func = lambda: self._value
-            self._args = ()
-        elif isinstance(sympy.S.Half, expr.func):
-            self.register_buffer('_value', torch.tensor(0.5))
             self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.UnevaluatedExpr):
@@ -109,8 +110,11 @@ class _Node(torch.nn.Module):
             return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.Integer):
             return self._sympy_func(self._value)
-        elif isinstance(sympy.S.Half, self._sympy_func) :
-            return self._sympy_func()
+        elif issubclass(self._sympy_func, sympy.Rational):
+            if issubclass(self._sympy_func, sympy.core.numbers.Half):
+                return sympy.S.Half
+            else:
+                return self._sympy_func(int(self._numerator.item()), int(self._denominator.item()))
         elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
             return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.Symbol):
