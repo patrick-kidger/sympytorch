@@ -58,6 +58,17 @@ def test_constants():
     assert set(p.item() for p in mod.parameters()) == {2.0}
     assert set(b.item() for b in mod.buffers()) == {1.0}
 
+def test_half():
+    x = sympy.symbols('x')
+    y =  x**0.5 
+    mod = sympytorch.SymPyModule(expressions=[y])
+    assert mod.sympy() == [y]
+    assert set(p.item() for p in mod.parameters()) == {0.5}
+    
+    expr = sympy.parse_expr("sqrt(x)")
+    mod = sympytorch.SymPyModule(expressions=[expr])
+    assert mod.sympy() == [expr]
+    assert len([p.item() for p in mod.parameters()])==0
 
 def test_custom_function():
     x, y = sympy.symbols('x y')
