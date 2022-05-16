@@ -89,6 +89,11 @@ class _Node(torch.nn.Module):
             self._name = expr.name
             self._torch_func = lambda value: value
             self._args = ((lambda memodict: memodict[expr.name]),)
+        #TODO Implement Rational Class of pytorch version
+        elif issubclass(expr.func, sympy.core.Rational):
+            self._name = str(expr.p/expr.q)
+            self._torch_func = lambda : expr.p/expr.q
+            self._args = ()
         else:
             self._torch_func = _func_lookup[expr.func]
             args = []
