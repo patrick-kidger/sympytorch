@@ -9,6 +9,8 @@ def _reduce(fn):
         return ft.reduce(fn, args)
     return fn_
 
+def _I(*args):
+    return torch.tensor(1j)
 
 _global_func_lookup = {
     sympy.Mul: _reduce(torch.mul),
@@ -60,6 +62,9 @@ _global_func_lookup = {
     sympy.Trace: torch.trace,
     # Note: May raise error for integer matrices.
     sympy.Determinant: torch.det,
+    sympy.core.numbers.ImaginaryUnit: _I,
+    sympy.conjugate: torch.conj,
+
 }
 
 
