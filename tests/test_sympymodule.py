@@ -108,3 +108,44 @@ def test_half2():
     y_tilde = mod(x=torch.tensor(xvals, dtype=torch.float64))[:, 0]
     error = y_tilde.detach().numpy() - np.abs(xvals) ** 0.5
     assert (error**2).mean() < 1e-10, "error:{}".format((error**2).mean())
+
+
+def test_complex():
+    # Simple complex number handing test
+    x = sympy.symbols('x')
+
+    complex_func_torch = sympytorch.SymPyModule(expressions=[x * sympy.I, 
+                                                            sympy.conjugate(x), 
+                                                            sympy.sqrt(sympy.conjugate(x*sympy.I) * x*sympy.I)])
+    
+    out = complex_func_torch(x=torch.tensor(2.0,dtype=torch.double)).detach().numpy()
+    assert out[0].item() == 2.0j, "Expected 2j, eval:{}".format(out[0].item())
+    assert out[1].item() == 2.0, "Expected 2, eval:{}".format(out[1].item())
+    assert out[2].item() == 2.0, "Expected 2, eval:{}".format(out[2].item())
+
+    # Complex number handling test with complex parameters
+    out = complex_func_torch(x=torch.tensor(2.0j,dtype=torch.complex128)).detach().numpy()
+    assert out[0].item() == -2.0, "Expected -2, eval:{}".format(out[0].item())
+    assert out[1].item() == -2.0j, "Expected -2j, eval:{}".format(out[1].item())
+    assert out[2].item() == 2.0, "Expected 2, eval:{}".format(out[2].item())
+
+    # Comparison with numpy using spherical harmonics
+    theta, phi = sympy.symbols("theta phi")
+    max_l = 2
+    m_list = range(-max_l, max_l + 1)
+
+    # spherical harmonics from l=-2 to l=2
+    func_list = [sympy.simplify(sympy.functions.special.spherical_harmonics\
+            .Znm(max_l, m, theta, phi).expand(func=True)).evalf() for m in m_list]
+
+    # Numpy and Torch based functions
+    func_list_np = [sympy.lambdify([theta, phi], func, "numpy") for func in func_list ]
+    func_list_torch = sympytorch.SymPyModule(expressions=func_list)
+
+    np_eval = np.array(list(map(lambda i: func_list_np[i](np.pi/3,np.pi/3), np.arange(5))))
+    torch_eval= func_list_torch(theta=torch.tensor(np.pi/3,dtype=torch.double),
+                                phi=torch.tensor(np.pi/3,dtype=torch.double))
+
+    # Correctness within single precision
+    error = np.sum(np.abs(torch_eval.detach().numpy() - np_eval))
+    assert error < 1e-7, "np v torch complex error:{}".format(error)
