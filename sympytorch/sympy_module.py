@@ -125,6 +125,8 @@ class _Node(torch.nn.Module):
                 return self._sympy_func(self._numerator.item(), self._denominator.item())
         elif issubclass(self._sympy_func, sympy.Symbol):
             return self._sympy_func(self._name)
+        elif issubclass(self._sympy_func, sympy.core.numbers.ImaginaryUnit):
+            return sympy.I
         else:
             if issubclass(self._sympy_func, (sympy.Min, sympy.Max)):
                 evaluate = False
