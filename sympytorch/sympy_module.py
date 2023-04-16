@@ -78,16 +78,14 @@ class _Node(torch.nn.Module):
             self._value = torch.nn.Parameter(torch.tensor(float(expr)))
             self._torch_func = lambda: self._value
             self._args = ()
+        elif issubclass(expr.func, sympy.Integer):
+            self._value = int(expr)
+            self._torch_func = lambda: self._value
+            self._args = ()
         elif issubclass(expr.func, sympy.Rational):
             self.register_buffer('_numerator', torch.tensor(expr.p, dtype=torch.get_default_dtype()))
             self.register_buffer('_denominator', torch.tensor(expr.q, dtype=torch.get_default_dtype()))
             self._torch_func = lambda: self._numerator / self._denominator
-            self._args = ()
-        elif issubclass(expr.func, sympy.Integer):
-            # Can get here if expr is one of the Integer special cases,
-            # e.g. NegativeOne
-            self._value = int(expr)
-            self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.UnevaluatedExpr):
             if len(expr.args) != 1 or not issubclass(expr.args[0].func, sympy.Float):
@@ -116,6 +114,8 @@ class _Node(torch.nn.Module):
             return self._sympy_func(self._value.item())
         elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
             return self._sympy_func(self._value.item())
+        elif issubclass(self._sympy_func, (type(sympy.S.NegativeOne), type(sympy.S.One), type(sympy.S.Zero))):
+            return self._sympy_func()
         elif issubclass(self._sympy_func, sympy.Integer):
             return self._sympy_func(self._value)
         elif issubclass(self._sympy_func, sympy.Rational):

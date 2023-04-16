@@ -49,9 +49,10 @@ def test_special_subclasses():
     x, y = sympy.symbols("x y")
     z = x - 1
     w = y * 0
+    u = sympy.Integer(1)
 
-    mod = sympytorch.SymPyModule(expressions=[z, w])
-    assert mod.sympy() == [x - 1, sympy.Integer(0)]
+    mod = sympytorch.SymPyModule(expressions=[z, w, u])
+    assert mod.sympy() == [x - 1, sympy.Integer(0), sympy.Integer(1)]
 
 
 def test_constants():
