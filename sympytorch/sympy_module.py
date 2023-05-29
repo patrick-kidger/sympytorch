@@ -67,6 +67,13 @@ _global_func_lookup = {
 
 }
 
+number_symbols = [cls for cls in sympy.NumberSymbol.__subclasses__()]
+
+def number_symbol_to_torch(symbol, *args):
+    return torch.tensor(float(symbol))
+
+_global_func_lookup.update({s: ft.partial(number_symbol_to_torch, s()) for s in number_symbols})
+
 
 class _Node(torch.nn.Module):
     def __init__(self, *, expr, _memodict, _func_lookup, **kwargs):
@@ -127,6 +134,8 @@ class _Node(torch.nn.Module):
             return self._sympy_func(self._name)
         elif issubclass(self._sympy_func, sympy.core.numbers.ImaginaryUnit):
             return sympy.I
+        elif issubclass(self._sympy_func, sympy.core.numbers.NumberSymbol):
+            return self._sympy_func()
         else:
             if issubclass(self._sympy_func, (sympy.Min, sympy.Max)):
                 evaluate = False
