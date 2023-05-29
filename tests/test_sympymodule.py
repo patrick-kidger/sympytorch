@@ -111,6 +111,15 @@ def test_half2():
     assert (error**2).mean() < 1e-10, "error:{}".format((error**2).mean())
 
 
+def test_constants():
+    constants = [sympy.pi, sympy.E, sympy.GoldenRatio, sympy.TribonacciConstant, sympy.EulerGamma, sympy.Catalan]
+    mod = sympytorch.SymPyModule(expressions=constants)
+    mod.to(torch.float64)
+    assert mod.sympy() == constants, "mod: {}, y:{}".format(mod.sympy(), constants)
+    assert len([p.item() for p in mod.parameters()]) == 0
+    torch.testing.assert_allclose(mod(),torch.tensor([float(c) for c in constants]))
+
+
 def test_complex():
     # Simple complex number handing test
     x = sympy.symbols('x')
