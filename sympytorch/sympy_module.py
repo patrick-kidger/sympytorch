@@ -6,6 +6,7 @@ import torch
 from typing import Any, Dict, Callable, Generic, Type, TypeVar, List, Union, Tuple, TYPE_CHECKING, Sequence
 
 ExprType = TypeVar("ExprType", bound=sympy.Expr)
+T = TypeVar('T')
 
 if TYPE_CHECKING:
     # Because there are methods of our class objects below called `sympy` that implicitly override
@@ -13,8 +14,8 @@ if TYPE_CHECKING:
     # needs to know that we're referring to the sympy module in our type annotations.
     import sympy as sympy_
 
-def _reduce(fn):
-    def fn_(*args):
+def _reduce(fn:Callable[..., T]) -> Callable[..., T]:
+    def fn_(*args:Any) -> T:
         return ft.reduce(fn, args)
     return fn_
 
