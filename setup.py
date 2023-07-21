@@ -59,4 +59,6 @@ setuptools.setup(name=name,
                  zip_safe=False,
                  python_requires=python_requires,
                  install_requires=install_requires,
-                 packages=[name])
+                 packages=[name],
+                 package_data={name: ['py.typed']}
+                 )
