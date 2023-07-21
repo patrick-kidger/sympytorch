@@ -111,7 +111,7 @@ def test_half2():
     assert (error**2).mean() < 1e-10, "error:{}".format((error**2).mean())
 
 
-def test_constants():
+def test_constants2():
     constants = [sympy.pi, sympy.E, sympy.GoldenRatio, sympy.TribonacciConstant, sympy.EulerGamma, sympy.Catalan]
     mod = sympytorch.SymPyModule(expressions=constants)
     mod.to(torch.float64)
