@@ -1,28 +1,50 @@
 from __future__ import annotations
+
 import collections as co
 import functools as ft
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Sequence,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+)
+
 import sympy
 import torch
-from typing import Any, Dict, Callable, Generic, Type, TypeVar, List, Union, Tuple, TYPE_CHECKING, Sequence
+
 
 ExprType = TypeVar("ExprType", bound=sympy.Expr)
-T = TypeVar('T')
+T = TypeVar("T")
 
 if TYPE_CHECKING:
-    # Because there are methods of our class objects below called `sympy` that implicitly override
-    # the `sympy` name in the global namespace while defining other methods, our type checker
-    # needs to know that we're referring to the sympy module in our type annotations.
+    # Because there are methods of our class objects below called `sympy` that
+    # implicitly override the `sympy` name in the global namespace while defining other
+    # methods, our type checker needs to know that we're referring to the sympy module
+    # in our type annotations.
     import sympy as sympy_
 
-def _reduce(fn:Callable[..., T]) -> Callable[..., T]:
-    def fn_(*args:Any) -> T:
+
+def _reduce(fn: Callable[..., T]) -> Callable[..., T]:
+    def fn_(*args: Any) -> T:
         return ft.reduce(fn, args)
+
     return fn_
+
 
 def _I(*args: Any) -> torch.Tensor:
     return torch.tensor(1j)
 
-_global_func_lookup:Dict[Union[Type[sympy.Basic], Callable[..., Any]], Callable[..., torch.Tensor]] = {
+
+_global_func_lookup: Dict[
+    Union[Type[sympy.Basic], Callable[..., Any]], Callable[..., torch.Tensor]
+] = {
     sympy.Mul: _reduce(torch.mul),
     sympy.Add: _reduce(torch.add),
     sympy.div: torch.div,
@@ -78,20 +100,34 @@ _global_func_lookup:Dict[Union[Type[sympy.Basic], Callable[..., Any]], Callable[
 
 number_symbols = [cls for cls in sympy.NumberSymbol.__subclasses__()]
 
-def number_symbol_to_torch(symbol:sympy.NumberSymbol, *args: Any) -> torch.Tensor:
+
+def number_symbol_to_torch(symbol: sympy.NumberSymbol, *args: Any) -> torch.Tensor:
     return torch.tensor(float(symbol))
 
-_global_func_lookup.update({s: ft.partial(number_symbol_to_torch, s()) for s in number_symbols})
+
+_global_func_lookup.update(
+    {s: ft.partial(number_symbol_to_torch, s()) for s in number_symbols}
+)
 
 
 class _Node(torch.nn.Module, Generic[ExprType]):
-    def __init__(self, *, expr: ExprType, _memodict:Dict[sympy.Basic, torch.nn.Module], _func_lookup, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        expr: ExprType,
+        _memodict: Dict[sympy.Basic, torch.nn.Module],
+        _func_lookup,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
 
         self._sympy_func: Type[ExprType] = expr.func
 
         self._torch_func: Callable[..., torch.Tensor]
-        self._args: Union[torch.nn.ModuleList, Tuple[Callable[[Dict[str, torch.Tensor]], torch.Tensor], ...]]
+        self._args: Union[
+            torch.nn.ModuleList,
+            Tuple[Callable[[Dict[str, torch.Tensor]], torch.Tensor], ...],
+        ]
         self._value: Any
 
         if issubclass(expr.func, sympy.Float):
@@ -106,15 +142,19 @@ class _Node(torch.nn.Module, Generic[ExprType]):
             self._numerator: torch.Tensor
             self._denominator: torch.Tensor
             assert isinstance(expr, sympy.Rational)
-            self.register_buffer('_numerator', torch.tensor(expr.p, dtype=torch.get_default_dtype()))
-            self.register_buffer('_denominator', torch.tensor(expr.q, dtype=torch.get_default_dtype()))
+            self.register_buffer(
+                "_numerator", torch.tensor(expr.p, dtype=torch.get_default_dtype())
+            )
+            self.register_buffer(
+                "_denominator", torch.tensor(expr.q, dtype=torch.get_default_dtype())
+            )
             self._torch_func = lambda: self._numerator / self._denominator
             self._args = ()
         elif issubclass(expr.func, sympy.UnevaluatedExpr):
             if len(expr.args) != 1 or not issubclass(expr.args[0].func, sympy.Float):
                 raise ValueError("UnevaluatedExpr should only be used to wrap floats.")
             assert isinstance(expr.args[0], sympy.Float)
-            self.register_buffer('_value', torch.tensor(float(expr.args[0])))
+            self.register_buffer("_value", torch.tensor(float(expr.args[0])))
             self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.Symbol):
@@ -124,12 +164,17 @@ class _Node(torch.nn.Module, Generic[ExprType]):
             self._args = ((lambda memodict: memodict[expr.name]),)
         else:
             self._torch_func = _func_lookup[expr.func]
-            args:List[torch.nn.Module] = []
+            args: List[torch.nn.Module] = []
             for arg in expr.args:
                 try:
                     arg_ = _memodict[arg]
                 except KeyError:
-                    arg_ = type(self)(expr=arg, _memodict=_memodict, _func_lookup=_func_lookup, **kwargs)  # type: ignore
+                    arg_ = type(self)(
+                        expr=arg,  # type: ignore
+                        _memodict=_memodict,
+                        _func_lookup=_func_lookup,
+                        **kwargs,
+                    )
                     _memodict[arg] = arg_
                 args.append(arg_)
             self._args = torch.nn.ModuleList(args)
@@ -141,7 +186,10 @@ class _Node(torch.nn.Module, Generic[ExprType]):
         elif issubclass(self._sympy_func, sympy.UnevaluatedExpr):
             assert isinstance(self._value, torch.Tensor)
             return self._sympy_func(self._value.item())
-        elif issubclass(self._sympy_func, (type(sympy.S.NegativeOne), type(sympy.S.One), type(sympy.S.Zero))):
+        elif issubclass(
+            self._sympy_func,
+            (type(sympy.S.NegativeOne), type(sympy.S.One), type(sympy.S.Zero)),
+        ):
             return self._sympy_func()
         elif issubclass(self._sympy_func, sympy.Integer):
             return self._sympy_func(self._value)
@@ -149,7 +197,9 @@ class _Node(torch.nn.Module, Generic[ExprType]):
             if issubclass(self._sympy_func, type(sympy.S.Half)):
                 return sympy.S.Half
             else:
-                return self._sympy_func(self._numerator.item(), self._denominator.item())
+                return self._sympy_func(
+                    self._numerator.item(), self._denominator.item()
+                )
         elif issubclass(self._sympy_func, sympy.Symbol):
             return self._sympy_func(self._name)
         elif issubclass(self._sympy_func, sympy.core.numbers.ImaginaryUnit):
@@ -189,14 +239,17 @@ class SymPyModule(torch.nn.Module):
         super().__init__(**kwargs)
 
         expressions = tuple(expressions)
-        
+
         if extra_funcs is None:
             extra_funcs = {}
         _func_lookup = co.ChainMap(_global_func_lookup, extra_funcs)
 
         _memodict = {}
         self._nodes: Sequence[_Node] = torch.nn.ModuleList(  # type: ignore
-            [_Node(expr=expr, _memodict=_memodict, _func_lookup=_func_lookup) for expr in expressions]
+            [
+                _Node(expr=expr, _memodict=_memodict, _func_lookup=_func_lookup)
+                for expr in expressions
+            ]
         )
         self._expressions_string = str(expressions)
 
@@ -204,11 +257,10 @@ class SymPyModule(torch.nn.Module):
         return f"{type(self).__name__}(expressions={self._expressions_string})"
 
     def sympy(self) -> List[sympy.Expr]:
-        _memodict:Dict[_Node, sympy.Expr] = {}
+        _memodict: Dict[_Node, sympy.Expr] = {}
         return [node.sympy(_memodict) for node in self._nodes]
 
-    def forward(self, **symbols:Any) -> torch.Tensor:
+    def forward(self, **symbols: Any) -> torch.Tensor:
         out = [node(symbols) for node in self._nodes]
         out = torch.broadcast_tensors(*out)
         return torch.stack(out, dim=-1)
-
