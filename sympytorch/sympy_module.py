@@ -86,7 +86,7 @@ class _Node(torch.nn.Module):
             self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.Integer):
-            self._value = int(expr)
+            self._value = torch.tensor(int(expr))
             self._torch_func = lambda: self._value
             self._args = ()
         elif issubclass(expr.func, sympy.Rational):

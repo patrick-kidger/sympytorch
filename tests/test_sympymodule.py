@@ -159,3 +159,18 @@ def test_complex():
     # Correctness within single precision
     error = np.sum(np.abs(torch_eval.detach().numpy() - np_eval))
     assert error < 1e-7, "np v torch complex error:{}".format(error)
+
+def test_integers():
+    m = sympytorch.SymPyModule(expressions=[sympy.core.numbers.Zero()])
+    assert m() == torch.tensor([0.0])
+
+    m = sympytorch.SymPyModule(expressions=[sympy.core.numbers.One()])
+    assert m() == torch.tensor([1.0])
+
+    m = sympytorch.SymPyModule(expressions=[sympy.core.numbers.NegativeOne()])
+    assert m() == torch.tensor([-1.0])
+
+    for i in range(-10, 10):
+        m = sympytorch.SymPyModule(expressions=[sympy.core.numbers.Integer(i)])
+        assert m() == torch.tensor([float(i)])
+
